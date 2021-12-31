@@ -18,6 +18,8 @@ class Handler(Entity):
             eternal=True
         )
 
+        self.prev_pos = None
+
         self.id = None
         self.players = {}
         self.players_target_pos = {}
@@ -46,6 +48,7 @@ class Handler(Entity):
         spawn_pos = scene.spawnpoints[randint(0, len(scene.spawnpoints) - 1)]
         self.controller.position = spawn_pos
         self.controller.rotation = scene.spawn_rotations[spawn_pos]
+        self.controller.gravity = 0
         self.gun = Gun(
             parent=camera,
             position=Vec3(1.5, -.4, 1.5),
@@ -67,7 +70,10 @@ class Handler(Entity):
                 self.players[var].position = easy_client.replicated_variables[var].content['position']
                 self.players[var].rotation = easy_client.replicated_variables[var].content['rotation']
 
-        client.send_message('myPosition', tuple(self.controller.position))
+        if self.prev_pos != self.controller.position:
+            client.send_message('myPosition', self.controller.position)
+
+        self.prev_pos = self.controller.position
         easy_client.process_net_events()
 
     def input(self, key):  # ignore
@@ -123,12 +129,11 @@ if __name__ == '__main__':
             handler.map_objects[var_name] = new_obj
             new_obj.parent = scene
         elif var_type == 'player':
-            print(f'new player {var_name}')
+            print(f'New player {var_name}')
             handler.players[var_name] = Player(
                 position=var.content['position'] + Vec3(0, 1, 0),
                 rotation=var.content['rotation'],
             )
-            print(handler.players)
             if handler.id == int(var.content['id']):
                 handler.players[var_name].enabled = False
                 handler.controller.position = var.content['position']
@@ -143,7 +148,6 @@ if __name__ == '__main__':
 
     @easy_client.event
     def onReplicatedVariableRemoved(var):
-        print(f'Removed var : {var}')
         global client
         var_name = var.name
         var_type = var.type

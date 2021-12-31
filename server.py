@@ -46,7 +46,6 @@ def onClientDisconnected(client):
 
 @server.event
 def myPosition(client, new_pos):
-    print(f'{client.id}\t{new_pos}')
     easy_server.update_replicated_variable_by_name(f'player_{client.id}', 'position', new_pos)
 
 
